@@ -1,18 +1,1 @@
-{
-  "name": "Escuela Segura — Docentes",
-  "short_name": "Docentes",
-  "description": "Sistema de alerta escolar para personal docente",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#16a34a",
-  "theme_color": "#16a34a",
-  "icons": [
-    {
-      "src": "icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
-}
+

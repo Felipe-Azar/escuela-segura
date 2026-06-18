@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Escuela Segura">
+  <meta name="theme-color" content="#16a34a">
+  <meta name="description" content="Escuela Segura - Alerta Escolar Docentes">
+  <title>Escuela Segura — Docentes</title>
+  <link rel="manifest" href="manifest-docentes.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <style>
+    :root {
+      --verde: #16a34a;
+      --verde-oscuro: #15803d;
+      --rojo: #dc2626;
+      --rojo-oscuro: #991b1b;
+      --azul: #4f46e5;
+      --azul-oscuro: #312e81;
+      --fondo: #f0fdf4;
+      --texto: #1e293b;
+      --sombra: 0 4px 20px rgba(0,0,0,0.12);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--fondo);
+      color: var(--texto);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .app { display: flex; flex-direction: column; height: 100%; padding-top: var(--safe-top); }
+    .offline-banner {
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 6px 12px;
+      text-align: center;
+      line-height: 1.3;
+      flex-shrink: 0;
+    }
+    .offline-banner i { margin-right: 4px; }
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; color: #fff; flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .header.prevencion { background: var(--verde); }
+    .header.evacuacion { background: var(--rojo); animation: pulso-rojo 1s infinite; }
+    .header.confinamiento { background: var(--azul); animation: pulso-azul 1s infinite; }
+    @keyframes pulso-rojo { 0%,100%{background:var(--rojo)} 50%{background:var(--rojo-oscuro)} }
+    @keyframes pulso-azul { 0%,100%{background:var(--azul)} 50%{background:var(--azul-oscuro)} }
+    .header-titulo { font-weight: 700; font-size: 1rem; }
+    .header-estado { font-size: 0.85rem; opacity: 0.95; display: flex; align-items: center; gap: 6px; }
+    .header-estado i { font-size: 1.1rem; }
+    .tabs-nav {
+      display: flex; background: #fff; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1; padding: 12px; border: none; background: none;
+      font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer;
+    }
+    .tab-btn.activo { color: var(--verde); border-bottom: 3px solid var(--verde); }
+    .contenido { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: calc(16px + var(--safe-bottom)); }
+    .pantalla { display: none; }
+    .pantalla.activa { display: block; }
+    .pantalla-full {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      flex-direction: column; padding: var(--safe-top) 16px var(--safe-bottom);
+      overflow-y: auto;
+    }
+    .pantalla-full.activa { display: flex; }
+    .pantalla-full.evacuacion { background: var(--rojo); color: #fff; }
+    .pantalla-full.confinamiento { background: var(--azul-oscuro); color: #fff; }
+    #login-flash {
+      position: fixed; inset: 0; z-index: 2000; background: var(--verde);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #fff; padding: 24px; transition: opacity 0.5s;
+    }
+    #login-flash.oculto { opacity: 0; pointer-events: none; }
+    .login-logo { font-size: 3rem; margin-bottom: 12px; }
+    .login-logo i { font-size: 4rem; }
+    .login-form { width: 100%; max-width: 320px; margin-top: 24px; }
+    .login-form label { display: block; font-size: 0.85rem; margin-bottom: 4px; opacity: 0.9; }
+    .login-form input, .login-form select {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      margin-bottom: 16px; font-size: 1rem;
+    }
+    .btn-primario {
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      background: #fff; color: var(--verde-oscuro); font-weight: 700;
+      font-size: 1rem; cursor: pointer;
+    }
+    .slide-container { margin-bottom: 24px; }
+    .slide-label {
+      font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .slide-label.evacuacion { color: var(--rojo); }
+    .slide-label.confinamiento { color: var(--azul); }
+    .slide-track {
+      position: relative; height: 56px; border-radius: 28px;
+      overflow: hidden; user-select: none; touch-action: none;
+    }
+    .slide-track.evacuacion { background: #fecaca; border: 2px solid var(--rojo); }
+    .slide-track.confinamiento { background: #c7d2fe; border: 2px solid var(--azul); }
+    .slide-texto {
+      position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: center; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.5px; pointer-events: none; opacity: 0.7;
+    }
+    .slide-thumb {
+      position: absolute; top: 4px; left: 4px; width: 48px; height: 48px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 1.3rem; cursor: grab; z-index: 2;
+    }
+    .slide-thumb:active { cursor: grabbing; }
+    .slide-thumb.evacuacion { background: var(--rojo); box-shadow: 0 2px 8px rgba(220,38,38,0.5); }
+    .slide-thumb.confinamiento { background: var(--azul); box-shadow: 0 2px 8px rgba(79,70,229,0.5); }
+    .slide-track.completado .slide-texto { opacity: 0; }
+    .info-card {
+      background: #fff; border-radius: 12px; padding: 16px;
+      box-shadow: var(--sombra); margin-bottom: 16px;
+    }
+    .info-card h3 { font-size: 0.95rem; margin-bottom: 8px; color: var(--verde-oscuro); }
+    .info-card p { font-size: 0.85rem; line-height: 1.5; color: #64748b; }
+    .emergencia-header { text-align: center; padding: 20px 0; }
+    .emergencia-header h1 { font-size: 1.6rem; margin-bottom: 8px; }
+    .cronometro {
+      font-size: 3.5rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      text-align: center; margin: 16px 0;
+    }
+    .instrucciones {
+      background: rgba(255,255,255,0.15); border-radius: 12px;
+      padding: 16px; font-size: 0.88rem; line-height: 1.6; margin-bottom: 16px;
+    }
+    .instrucciones ul { padding-left: 20px; margin-top: 8px; }
+    .instrucciones li { margin-bottom: 6px; }
+    .reporte-panel {
+      background: rgba(255,255,255,0.12); border-radius: 12px;
+      padding: 16px; margin-top: auto;
+    }
+    .reporte-btns { display: flex; gap: 10px; margin-bottom: 12px; }
+    .btn-reporte {
+      flex: 1; padding: 18px 8px; border: 3px solid rgba(255,255,255,0.4);
+      border-radius: 12px; background: rgba(255,255,255,0.1);
+      color: #fff; font-weight: 700; font-size: 0.82rem; cursor: pointer;
+    }
+    .btn-reporte.seleccionado-ok { background: #22c55e; border-color: #22c55e; }
+    .btn-reporte.seleccionado-alerta { background: #fbbf24; border-color: #fbbf24; color: #1e293b; }
+    .campo-observaciones {
+      width: 100%; padding: 12px; border-radius: 8px; border: none;
+      font-size: 0.9rem; margin-bottom: 10px; display: none;
+    }
+    .campo-observaciones.visible { display: block; }
+    .btn-enviar-reporte {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: #fff; color: var(--rojo-oscuro); font-weight: 700;
+      cursor: pointer; display: none;
+    }
+    .btn-enviar-reporte.visible { display: block; }
+    .btn-desactivar {
+      margin-top: 12px; padding: 10px; width: 100%;
+      background: transparent; border: 1px solid rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.5); font-size: 0.7rem; border-radius: 8px;
+      cursor: pointer;
+    }
+    .check-item {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; padding: 14px; border-radius: 10px;
+      margin-bottom: 10px; box-shadow: var(--sombra);
+    }
+    .check-item input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--verde); }
+    .check-item label { font-size: 0.9rem; flex: 1; }
+    .toast {
+      position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b; color: #fff; padding: 12px 24px;
+      border-radius: 10px; font-size: 0.85rem; z-index: 3000;
+      transition: transform 0.3s; pointer-events: none;
+    }
+    .toast.visible { transform: translateX(-50%) translateY(0); }
+    .conexion-indicador {
+      width: 8px; height: 8px; border-radius: 50%; background: #86efac;
+      display: inline-block;
+    }
+    .conexion-indicador.offline { background: #fbbf24; }
+  </style>
+</head>
+<body>
+
+<div class="offline-banner">
+  <i class="ti ti-wifi-off"></i>
+  Si se corta internet: active protocolo de malla local (Wi-Fi Direct / Bluetooth) con el equipo de coordinación del piso.
+</div>
+
+<div class="app" id="app-principal" style="display:none;">
+  <header class="header prevencion" id="header-estado">
+    <div>
+      <div class="header-titulo"><i class="ti ti-shield-check"></i> Escuela Segura</div>
+      <div class="header-estado" id="texto-estado-header">
+        <span class="conexion-indicador" id="indicador-conexion"></span>
+        <span id="label-estado">Prevención</span>
+      </div>
+    </div>
+    <div id="info-profesor" style="font-size:0.75rem;text-align:right;white-space:pre-line;"></div>
+  </header>
+
+  <nav class="tabs-nav" id="tabs-nav">
+    <button class="tab-btn activo" data-tab="panel">Panel</button>
+    <button class="tab-btn" data-tab="fiscalizacion">Fiscalización</button>
+  </nav>
+
+  <main class="contenido">
+    <section class="pantalla activa" id="tab-panel">
+      <div class="info-card">
+        <h3><i class="ti ti-user"></i> Bienvenido/a</h3>
+        <p>Deslice completamente los controles para activar una alerta. Requiere arrastre al 95% del carril — no basta con un toque simple.</p>
+      </div>
+
+      <div class="slide-container">
+        <div class="slide-label evacuacion"><i class="ti ti-flame"></i> DESLIZAR PARA EVACUACIÓN</div>
+        <div class="slide-track evacuacion" id="slide-evacuacion">
+          <div class="slide-texto">→ DESLIZAR PARA CONFIRMAR EVACUACIÓN →</div>
+          <div class="slide-thumb evacuacion" id="thumb-evacuacion"><i class="ti ti-arrow-right"></i></div>
+        </div>
+      </div>
+
+      <div class="slide-container">
+        <div class="slide-label confinamiento"><i class="ti ti-lock"></i> DESLIZAR PARA LOCKDOWN</div>
+        <div class="slide-track confinamiento" id="slide-confinamiento">
+          <div class="slide-texto">→ DESLIZAR PARA CONFIRMAR LOCKDOWN →</div>
+          <div class="slide-thumb confinamiento" id="thumb-confinamiento"><i class="ti ti-arrow-right"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pantalla" id="tab-fiscalizacion">
+      <div class="info-card">
+        <h3><i class="ti ti-clipboard-check"></i> Chequeo Preventivo Diario</h3>
+        <p>Verifique las condiciones de su zona antes de iniciar clases.</p>
+      </div>
+      <form id="form-fiscalizacion">
+        <div class="check-item">
+          <input type="checkbox" id="check-vias" name="vias_escape">
+          <label for="check-vias">Vías de escape despejadas y señalizadas</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="check-kit" name="kit_medico">
+          <label for="check-kit">Kit médico completo y accesible</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="check-extintor" name="extintor">
+          <label for="check-extintor">Extintor vigente en zona asignada</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="check-puerta" name="puerta">
+          <label for="check-puerta">Puerta de aula abre hacia el exterior sin obstrucción</label>
+        </div>
+        <button type="submit" class="btn-primario" style="background:var(--verde);color:#fff;margin-top:12px;">
+          <i class="ti ti-device-floppy"></i> Guardar Fiscalización
+        </button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<div class="pantalla-full evacuacion" id="pantalla-evacuacion">
+  <div class="emergencia-header">
+    <h1><i class="ti ti-alert-triangle"></i> EVACUACIÓN ACTIVA</h1>
+    <p>Sismo / Incendio — Protocolo inmediato</p>
+  </div>
+  <div class="cronometro" id="cronometro">00:00</div>
+  <div class="instrucciones">
+    <strong>Instrucciones:</strong>
+    <ul>
+      <li>Dirija a los alumnos hacia la <strong>zona exterior en Av. San Rafael</strong> por la ruta señalizada.</li>
+      <li>Mantenga el registro visual de su curso en todo momento.</li>
+      <li><strong>Protocolo NEE:</strong> Asista prioritariamente a alumnos con movilidad reducida. Use silla de ruedas/rampa designada. No abandone al último alumno.</li>
+      <li>Permanezca en punto de reunión hasta nueva indicación.</li>
+    </ul>
+  </div>
+  <div class="reporte-panel" id="reporte-evacuacion"></div>
+  <button class="btn-desactivar" id="btn-desactivar-evac" type="button">⬡ Desactivación autorizada — Finalizar emergencia</button>
+</div>
+
+<div class="pantalla-full confinamiento" id="pantalla-confinamiento">
+  <div class="emergencia-header">
+    <h1><i class="ti ti-lock"></i> LOCKDOWN ACTIVO</h1>
+    <p>Peligro perimetral — Máximo silencio</p>
+  </div>
+  <div class="cronometro" id="cronometro-lock">00:00</div>
+  <div class="instrucciones">
+    <strong>Protocolo de confinamiento:</strong>
+    <ul>
+      <li>Cierre <strong>con llave</strong> puerta del aula.</li>
+      <li>Apague luces y aleje alumnos de ventanas.</li>
+      <li>Bloquee ventanas con mobiliario disponible.</li>
+      <li><strong>Silencio absoluto.</strong> Posición de resguardo en el suelo, lejos de puertas y ventanas.</li>
+      <li>No abra hasta indicación oficial de desactivación.</li>
+    </ul>
+  </div>
+  <div class="reporte-panel" id="reporte-confinamiento"></div>
+  <button class="btn-desactivar" id="btn-desactivar-lock" type="button">⬡ Desactivación autorizada — Finalizar emergencia</button>
+</div>
+
+<div id="login-flash">
+  <div class="login-logo"><i class="ti ti-school"></i></div>
+  <h1>Escuela Segura</h1>
+  <p>Sistema de Alerta Docente</p>
+  <form class="login-form" id="form-login">
+    <label for="input-nombre">Nombre completo</label>
+    <input type="text" id="input-nombre" required placeholder="Ej: Prof. María González" autocomplete="name">
+    <label for="input-zona">Zona asignada</label>
+    <select id="input-zona" required>
+      <option value="">Seleccione zona...</option>
+      <option value="Piso 1 - Ala Norte">Piso 1 - Ala Norte</option>
+      <option value="Piso 1 - Ala Sur">Piso 1 - Ala Sur</option>
+      <option value="Piso 2 - Ala Norte">Piso 2 - Ala Norte</option>
+      <option value="Piso 2 - Ala Sur">Piso 2 - Ala Sur</option>
+      <option value="Patio / Exterior">Patio / Exterior</option>
+      <option value="Gimnasio">Gimnasio</option>
+    </select>
+    <button type="submit" class="btn-primario">Ingresar al sistema</button>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  const API_URL = ESCUELA_SEGURA_CONFIG.API_URL;
+  const POLL_INTERVAL_MS = ESCUELA_SEGURA_CONFIG.POLL_INTERVAL_MS;
+  const SLIDE_UMBRAL = 0.95;
+  const LS_NOMBRE = 'escuela_segura_profesor_nombre';
+  const LS_ZONA = 'escuela_segura_profesor_zona';
+
+  let modoActual = 'PREVENCION';
+  let pollTimer = null;
+  let cronometroInterval = null;
+  let segundosTranscurridos = 0;
+  let reporteTipo = null;
+
+  const profesor = { nombre: '', zona: '' };
+
+  function mostrarToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(function() { t.classList.remove('visible'); }, 2800);
+  }
+
+  function obtenerProfesorLocal() {
+    return {
+      nombre: localStorage.getItem(LS_NOMBRE) || '',
+      zona: localStorage.getItem(LS_ZONA) || ''
+    };
+  }
+
+  function guardarProfesorLocal(nombre, zona) {
+    localStorage.setItem(LS_NOMBRE, nombre);
+    localStorage.setItem(LS_ZONA, zona);
+    profesor.nombre = nombre;
+    profesor.zona = zona;
+  }
+
+  async function apiGet(params) {
+    const url = new URL(API_URL);
+    Object.keys(params).forEach(function(k) {
+      if (params[k] !== undefined && params[k] !== null) {
+        url.searchParams.set(k, String(params[k]));
+      }
+    });
+    const resp = await fetch(url.toString(), { method: 'GET', cache: 'no-store' });
+    return resp.json();
+  }
+
+  async function apiAccion(accion, datos) {
+    datos = datos || {};
+    datos.action = accion;
+    try {
+      const resp = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      });
+      if (resp.ok) return resp.json();
+    } catch (e) { /* fallback GET por CORS */ }
+    return apiGet(datos);
+  }
+
+  async function consultarEstado() {
+    try {
+      const data = await apiGet({ action: 'get_estado' });
+      document.getElementById('indicador-conexion').classList.remove('offline');
+      if (data.ok && data.modo !== modoActual) {
+        aplicarModo(data.modo, false);
+      } else if (data.ok) {
+        modoActual = data.modo;
+      }
+    } catch (err) {
+      document.getElementById('indicador-conexion').classList.add('offline');
+    }
+  }
+
+  function iniciarPolling() {
+    consultarEstado();
+    pollTimer = setInterval(consultarEstado, POLL_INTERVAL_MS);
+  }
+
+  function actualizarHeader(modo) {
+    const header = document.getElementById('header-estado');
+    const label = document.getElementById('label-estado');
+    header.className = 'header';
+    if (modo === 'PREVENCION') {
+      header.classList.add('prevencion');
+      label.textContent = 'Prevención';
+      document.getElementById('app-principal').style.display = 'flex';
+      document.getElementById('pantalla-evacuacion').classList.remove('activa');
+      document.getElementById('pantalla-confinamiento').classList.remove('activa');
+      document.getElementById('tabs-nav').style.display = 'flex';
+    } else if (modo === 'EVACUACION') {
+      header.classList.add('evacuacion');
+      label.textContent = 'EVACUACIÓN';
+      document.getElementById('app-principal').style.display = 'none';
+      document.getElementById('pantalla-evacuacion').classList.add('activa');
+      document.getElementById('pantalla-confinamiento').classList.remove('activa');
+    } else if (modo === 'CONFINAMIENTO') {
+      header.classList.add('confinamiento');
+      label.textContent = 'Lockdown';
+      document.getElementById('app-principal').style.display = 'none';
+      document.getElementById('pantalla-confinamiento').classList.add('activa');
+      document.getElementById('pantalla-evacuacion').classList.remove('activa');
+    }
+    document.getElementById('info-profesor').textContent =
+      profesor.nombre ? profesor.nombre + '\n' + profesor.zona : '';
+  }
+
+  function iniciarCronometro(displayId) {
+    segundosTranscurridos = 0;
+    if (cronometroInterval) clearInterval(cronometroInterval);
+    const el = document.getElementById(displayId);
+    function tick() {
+      segundosTranscurridos++;
+      const m = Math.floor(segundosTranscurridos / 60);
+      const s = segundosTranscurridos % 60;
+      el.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+    el.textContent = '00:00';
+    cronometroInterval = setInterval(tick, 1000);
+  }
+
+  function detenerCronometro() {
+    if (cronometroInterval) {
+      clearInterval(cronometroInterval);
+      cronometroInterval = null;
+    }
+  }
+
+  function aplicarModo(modo, localTrigger) {
+    modoActual = modo;
+    actualizarHeader(modo);
+    if (modo === 'EVACUACION') {
+      iniciarCronometro('cronometro');
+      construirPanelReporte('reporte-evacuacion');
+    } else if (modo === 'CONFINAMIENTO') {
+      iniciarCronometro('cronometro-lock');
+      construirPanelReporte('reporte-confinamiento');
+    } else {
+      detenerCronometro();
+      resetearSlides();
+    }
+    if (localTrigger) mostrarToast('Alerta activada: ' + modo);
+  }
+
+  function resetearSlides() {
+    ['evacuacion', 'confinamiento'].forEach(function(tipo) {
+      const track = document.getElementById('slide-' + tipo);
+      const thumb = document.getElementById('thumb-' + tipo);
+      if (!track || !thumb) return;
+      track.classList.remove('completado');
+      thumb.style.left = '4px';
+    });
+  }
+
+  function inicializarSlide(trackId, thumbId, modoDestino) {
+    const track = document.getElementById(trackId);
+    const thumb = document.getElementById(thumbId);
+    if (!track || !thumb) return;
+
+    let arrastrando = false;
+    let thumbLeft = 4;
+
+    function maxLeft() {
+      return track.offsetWidth - thumb.offsetWidth - 4;
+    }
+
+    function posicionar(clientX) {
+      const rect = track.getBoundingClientRect();
+      let x = clientX - rect.left - thumb.offsetWidth / 2;
+      x = Math.max(4, Math.min(x, maxLeft()));
+      thumb.style.left = x + 'px';
+      thumbLeft = x;
+    }
+
+    function finalizar() {
+      if (!arrastrando) return;
+      arrastrando = false;
+      const pct = maxLeft() > 0 ? thumbLeft / maxLeft() : 0;
+      if (pct >= SLIDE_UMBRAL) {
+        track.classList.add('completado');
+        thumb.style.left = maxLeft() + 'px';
+        activarAlerta(modoDestino);
+      } else {
+        thumb.style.left = '4px';
+        thumbLeft = 4;
+      }
+    }
+
+    function onStart(e) {
+      if (modoActual !== 'PREVENCION') return;
+      arrastrando = true;
+      e.preventDefault();
+    }
+
+    function onMove(e) {
+      if (!arrastrando) return;
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      posicionar(cx);
+      e.preventDefault();
+    }
+
+    thumb.addEventListener('mousedown', onStart);
+    thumb.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', finalizar);
+    document.addEventListener('touchend', finalizar);
+  }
+
+  async function activarAlerta(modo) {
+    try {
+      await apiAccion('cambiar_modo', { modo: modo });
+      await apiAccion('registrar_alerta', {
+        profesor: profesor.nombre,
+        zona: profesor.zona,
+        tipo_alerta: 'ACTIVACION_' + modo,
+        detalle: 'Alerta activada mediante slide-to-trigger',
+        tiempo_seg: 0
+      });
+      aplicarModo(modo, true);
+    } catch (err) {
+      mostrarToast('Error al activar alerta. Reintente.');
+      resetearSlides();
+    }
+  }
+
+  async function desactivarEmergencia() {
+    if (!confirm('¿Confirma DESACTIVAR la emergencia y volver a PREVENCIÓN en TODOS los dispositivos?')) return;
+    try {
+      await apiAccion('cambiar_modo', { modo: 'PREVENCION' });
+      await apiAccion('registrar_alerta', {
+        profesor: profesor.nombre,
+        zona: profesor.zona,
+        tipo_alerta: 'DESACTIVACION',
+        detalle: 'Emergencia finalizada por personal autorizado',
+        tiempo_seg: segundosTranscurridos
+      });
+      aplicarModo('PREVENCION', false);
+      mostrarToast('Sistema restaurado a Prevención');
+    } catch (err) {
+      mostrarToast('Error al desactivar. Reintente.');
+    }
+  }
+
+  function construirPanelReporte(containerId) {
+    const container = document.getElementById(containerId);
+    reporteTipo = null;
+    container.innerHTML =
+      '<p style="font-weight:700;margin-bottom:10px;">Reporte de zona:</p>' +
+      '<div class="reporte-btns">' +
+        '<button type="button" class="btn-reporte" id="btn-ok">🟢 Alumnos OK / Zona Segura</button>' +
+        '<button type="button" class="btn-reporte" id="btn-alerta">🔴 Alerta / Falta Alumno</button>' +
+      '</div>' +
+      '<textarea class="campo-observaciones" id="campo-obs" rows="3" placeholder="Describa la situación (alumno faltante, herido, etc.)"></textarea>' +
+      '<button type="button" class="btn-enviar-reporte" id="btn-enviar-reporte">Enviar reporte inmediato</button>';
+
+    document.getElementById('btn-ok').addEventListener('click', function() {
+      reporteTipo = 'OK';
+      this.classList.add('seleccionado-ok');
+      document.getElementById('btn-alerta').classList.remove('seleccionado-alerta');
+      document.getElementById('campo-obs').classList.remove('visible');
+      document.getElementById('btn-enviar-reporte').classList.add('visible');
+    });
+
+    document.getElementById('btn-alerta').addEventListener('click', function() {
+      reporteTipo = 'ALERTA';
+      this.classList.add('seleccionado-alerta');
+      document.getElementById('btn-ok').classList.remove('seleccionado-ok');
+      document.getElementById('campo-obs').classList.add('visible');
+      document.getElementById('btn-enviar-reporte').classList.add('visible');
+    });
+
+    document.getElementById('btn-enviar-reporte').addEventListener('click', enviarReporte);
+  }
+
+  async function enviarReporte() {
+    if (!reporteTipo) return;
+    const obs = document.getElementById('campo-obs').value.trim();
+    if (reporteTipo === 'ALERTA' && !obs) {
+      mostrarToast('Escriba observaciones para alertas');
+      return;
+    }
+    try {
+      await apiAccion('registrar_alerta', {
+        profesor: profesor.nombre,
+        zona: profesor.zona,
+        tipo_alerta: 'REPORTE_' + reporteTipo + '_' + modoActual,
+        detalle: reporteTipo === 'OK' ? 'Zona segura - todos los alumnos presentes' : obs,
+        tiempo_seg: segundosTranscurridos
+      });
+      mostrarToast('Reporte enviado correctamente');
+    } catch (err) {
+      mostrarToast('Error al enviar reporte');
+    }
+  }
+
+  document.getElementById('form-fiscalizacion').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const checks = {
+      vias_escape: document.getElementById('check-vias').checked,
+      kit_medico: document.getElementById('check-kit').checked,
+      extintor: document.getElementById('check-extintor').checked,
+      puerta: document.getElementById('check-puerta').checked
+    };
+    try {
+      await apiAccion('registrar_alerta', {
+        profesor: profesor.nombre,
+        zona: profesor.zona,
+        tipo_alerta: 'FISCALIZACION',
+        detalle: JSON.stringify(checks),
+        tiempo_seg: 0
+      });
+      mostrarToast('Fiscalización guardada');
+      this.reset();
+    } catch (err) {
+      mostrarToast('Error al guardar fiscalización');
+    }
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('activo'); });
+      document.querySelectorAll('.pantalla').forEach(function(p) { p.classList.remove('activa'); });
+      btn.classList.add('activo');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('activa');
+    });
+  });
+
+  function iniciarApp() {
+    document.getElementById('app-principal').style.display = 'flex';
+    document.getElementById('info-profesor').textContent = profesor.nombre + '\n' + profesor.zona;
+    inicializarSlide('slide-evacuacion', 'thumb-evacuacion', 'EVACUACION');
+    inicializarSlide('slide-confinamiento', 'thumb-confinamiento', 'CONFINAMIENTO');
+    document.getElementById('btn-desactivar-evac').addEventListener('click', desactivarEmergencia);
+    document.getElementById('btn-desactivar-lock').addEventListener('click', desactivarEmergencia);
+    iniciarPolling();
+  }
+
+  document.getElementById('form-login').addEventListener('submit', function(e) {
+    e.preventDefault();
+    guardarProfesorLocal(
+      document.getElementById('input-nombre').value.trim(),
+      document.getElementById('input-zona').value
+    );
+    document.getElementById('login-flash').classList.add('oculto');
+    setTimeout(function() {
+      document.getElementById('login-flash').style.display = 'none';
+      iniciarApp();
+    }, 500);
+  });
+
+  (function boot() {
+    const datos = obtenerProfesorLocal();
+    if (datos.nombre && datos.zona) {
+      profesor.nombre = datos.nombre;
+      profesor.zona = datos.zona;
+      document.getElementById('login-flash').innerHTML =
+        '<div class="login-logo"><i class="ti ti-shield-check"></i></div>' +
+        '<h2>Bienvenido/a, ' + datos.nombre.split(' ')[0] + '</h2>' +
+        '<p style="opacity:0.8;margin-top:8px;">Cargando panel...</p>';
+      setTimeout(function() {
+        document.getElementById('login-flash').classList.add('oculto');
+        setTimeout(function() {
+          document.getElementById('login-flash').style.display = 'none';
+          iniciarApp();
+        }, 500);
+      }, 1200);
+    }
+  })();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+  }
+})();
+</script>
+</body>
+</html>

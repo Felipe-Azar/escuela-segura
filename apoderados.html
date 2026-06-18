@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Escuela Segura">
+  <meta name="theme-color" content="#16a34a">
+  <meta name="description" content="Escuela Segura - Estado del Establecimiento">
+  <title>Escuela Segura — Apoderados</title>
+  <link rel="manifest" href="manifest-apoderados.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <style>
+    :root {
+      --verde: #16a34a;
+      --verde-claro: #dcfce7;
+      --rojo: #dc2626;
+      --azul: #1e1b4b;
+      --azul-claro: #312e81;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: background 0.5s, color 0.5s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .vista {
+      min-height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+      text-align: center;
+      transition: background 0.5s;
+    }
+    .vista.normal {
+      background: linear-gradient(160deg, var(--verde-claro), #fff 60%);
+      color: #166534;
+    }
+    .vista.evacuacion {
+      background: linear-gradient(160deg, #fecaca, var(--rojo) 80%);
+      color: #fff;
+      animation: pulso 1.2s infinite;
+    }
+    .vista.confinamiento {
+      background: linear-gradient(160deg, var(--azul-claro), var(--azul) 90%);
+      color: #e0e7ff;
+    }
+    @keyframes pulso {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.15); }
+    }
+    .icono-principal { font-size: 5rem; margin-bottom: 20px; line-height: 1; }
+    .icono-principal i { font-size: 5rem; }
+    h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; line-height: 1.3; }
+    .mensaje { font-size: 1rem; line-height: 1.7; max-width: 400px; opacity: 0.95; }
+    .badge-estado {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 30px;
+      font-weight: 700; font-size: 0.9rem; margin-bottom: 24px;
+    }
+    .vista.normal .badge-estado { background: var(--verde); color: #fff; }
+    .vista.evacuacion .badge-estado { background: rgba(0,0,0,0.3); color: #fff; }
+    .vista.confinamiento .badge-estado { background: rgba(255,255,255,0.15); color: #fff; }
+    .footer-info {
+      position: fixed; bottom: calc(12px + var(--safe-bottom));
+      left: 0; right: 0; text-align: center;
+      font-size: 0.7rem; opacity: 0.6;
+    }
+    .pulso-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #86efac; display: inline-block;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .offline-aviso {
+      position: fixed; top: var(--safe-top); left: 0; right: 0;
+      background: #f59e0b; color: #fff; font-size: 0.72rem;
+      padding: 6px 12px; text-align: center; display: none; z-index: 10;
+    }
+    .offline-aviso.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="offline-aviso" id="offline-aviso">
+  <i class="ti ti-wifi-off"></i> Sin conexión — Reintentando cada 4 segundos...
+</div>
+
+<div class="vista normal" id="vista-principal">
+  <div class="badge-estado">
+    <span class="pulso-dot"></span>
+    <span id="badge-texto">Establecimiento Seguro</span>
+  </div>
+  <div class="icono-principal" id="icono-principal">
+    <i class="ti ti-circle-check"></i>
+  </div>
+  <h1 id="titulo-principal">Estado del Establecimiento: Normal y Seguro</h1>
+  <p class="mensaje" id="mensaje-principal">
+    Las clases se desarrollan con regularidad. Este panel se actualiza automáticamente cada 4 segundos.
+  </p>
+</div>
+
+<p class="footer-info" id="footer-info">Escuela Segura · Solo lectura · Última sync: —</p>
+
+<script src="config.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  const API_URL = ESCUELA_SEGURA_CONFIG.API_URL;
+  const POLL_INTERVAL_MS = ESCUELA_SEGURA_CONFIG.POLL_INTERVAL_MS;
+
+  let modoActual = 'PREVENCION';
+  let audioCtx = null;
+  let alarmaActiva = false;
+
+  const CONFIG_VISTAS = {
+    PREVENCION: {
+      clase: 'normal',
+      badge: 'Establecimiento Seguro',
+      icono: 'ti-circle-check',
+      titulo: 'Estado del Establecimiento: Normal y Seguro',
+      mensaje: 'Las clases se desarrollan con regularidad. Este panel se actualiza automáticamente cada 4 segundos.',
+      theme: '#16a34a',
+      sonido: false
+    },
+    EVACUACION: {
+      clase: 'evacuacion',
+      badge: '⚠️ EVACUACIÓN EN CURSO',
+      icono: 'ti-alert-triangle',
+      titulo: 'Comunicado Oficial — Evacuación Preventiva',
+      mensaje: '⚠️ COMUNICADO OFICIAL: Se ha iniciado una evacuación preventiva en el colegio (Sismo/Incendio). Los alumnos están siendo dirigidos por el personal hacia las zonas exteriores seguras. Mantenga la calma y no sature las vías de acceso vehicular.',
+      theme: '#dc2626',
+      sonido: true
+    },
+    CONFINAMIENTO: {
+      clase: 'confinamiento',
+      badge: '🔒 LOCKDOWN ACTIVO',
+      icono: 'ti-lock',
+      titulo: 'Aviso de Seguridad Crítica — Confinamiento',
+      mensaje: '🔒 AVISO DE SEGURIDAD CRÍTICA: El establecimiento se encuentra en protocolo de confinamiento (Lockdown) por resguardo perimetral. Todos los alumnos están protegidos dentro de sus aulas bajo estrictas medidas de seguridad. Por su propia vida y la de sus hijos, NO concurra al colegio. Las puertas están bloqueadas por protocolo.',
+      theme: '#1e1b4b',
+      sonido: true
+    }
+  };
+
+  function reproducirAlarma() {
+    if (alarmaActiva) return;
+    alarmaActiva = true;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      function beep(freq, inicio, duracion) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime + inicio);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + inicio + duracion);
+        osc.start(audioCtx.currentTime + inicio);
+        osc.stop(audioCtx.currentTime + inicio + duracion);
+      }
+      beep(880, 0, 0.3);
+      beep(660, 0.4, 0.3);
+      beep(880, 0.8, 0.3);
+      beep(660, 1.2, 0.5);
+      setTimeout(function() { alarmaActiva = false; }, 3000);
+    } catch (e) {
+      alarmaActiva = false;
+    }
+  }
+
+  function aplicarVista(modo) {
+    const cfg = CONFIG_VISTAS[modo] || CONFIG_VISTAS.PREVENCION;
+    const vista = document.getElementById('vista-principal');
+
+    vista.className = 'vista ' + cfg.clase;
+    document.getElementById('badge-texto').textContent = cfg.badge;
+    document.getElementById('icono-principal').innerHTML = '<i class="ti ' + cfg.icono + '"></i>';
+    document.getElementById('titulo-principal').textContent = cfg.titulo;
+    document.getElementById('mensaje-principal').textContent = cfg.mensaje;
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', cfg.theme);
+
+    if (cfg.sonido && modo !== modoActual) reproducirAlarma();
+    if (modo === 'PREVENCION') alarmaActiva = false;
+    modoActual = modo;
+  }
+
+  async function consultarEstado() {
+    try {
+      const url = API_URL + '?action=get_estado&_t=' + Date.now();
+      const resp = await fetch(url, { method: 'GET', cache: 'no-store' });
+      const data = await resp.json();
+      document.getElementById('offline-aviso').classList.remove('visible');
+      if (data.ok) {
+        aplicarVista(data.modo);
+        document.getElementById('footer-info').textContent =
+          'Escuela Segura · Solo lectura · Última sync: ' + new Date().toLocaleTimeString('es-CL');
+      }
+    } catch (err) {
+      document.getElementById('offline-aviso').classList.add('visible');
+    }
+  }
+
+  consultarEstado();
+  setInterval(consultarEstado, POLL_INTERVAL_MS);
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+  }
+})();
+</script>
+</body>
+</html>

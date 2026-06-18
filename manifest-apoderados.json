@@ -1,18 +1,1 @@
-{
-  "name": "Escuela Segura — Apoderados",
-  "short_name": "Apoderados",
-  "description": "Estado del establecimiento escolar en tiempo casi real",
-  "start_url": "./apoderados.html",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#16a34a",
-  "theme_color": "#16a34a",
-  "icons": [
-    {
-      "src": "icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
-}
+
